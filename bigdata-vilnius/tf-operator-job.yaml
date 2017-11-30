@@ -1,0 +1,26 @@
+apiVersion: "tensorflow.org/v1alpha1"
+kind: "TfJob"
+metadata:
+  name: "example-job"
+  labels: 
+    name: bigdata-vilnius
+spec:
+  replicaSpecs:
+    - replicas: 1
+      tfReplicaType: MASTER
+      template:
+        spec:
+          containers:
+            - image: krallistic/tf-dist-example:latest
+              name: tensorflow
+          restartPolicy: OnFailure
+    - replicas: 1
+      tfReplicaType: WORKER
+      template:
+        spec:
+          containers:
+            - image: krallistic/tf-dist-example:latest
+              name: tensorflow
+          restartPolicy: OnFailure
+    - replicas: 1
+      tfReplicaType: PS
