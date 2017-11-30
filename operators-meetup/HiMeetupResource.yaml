@@ -1,0 +1,9 @@
+apiVersion: "meetup.example.com/v1"
+kind: "helloworld"
+metadata:
+  name: hi-meetup
+  labels:
+    app: demo
+spec:
+  hello: "hi"
+  world: "meetup"
