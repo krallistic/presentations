@@ -1,0 +1,18 @@
+apiVersion: "krallistic.github.com/v1"
+kind: "Tensorflow"
+metadata:
+  name: test-mnist-1
+spec:
+    image: krallistic/mnist-between:v1
+    ps_count: 2
+    worker_count: 3
+    gpu_worker: true
+    tensorboard:
+      active: true
+      folder: "/summary"
+
+
+
+
+
+      

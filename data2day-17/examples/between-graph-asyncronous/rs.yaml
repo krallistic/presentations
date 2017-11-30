@@ -1,0 +1,133 @@
+---
+kind: ReplicaSet
+apiVersion: extensions/v1beta1
+metadata:
+  name: mnist-worker-0
+spec:
+  replicas: 1
+  template:
+    metadata:
+      name: worker-0
+      labels:
+        name: mnist
+        job: worker
+        task: "0"
+    spec:
+      containers:
+      - name: gpu-container
+        image: krallistic/mnist-between:latest
+        imagePullPolicy: Always
+        command: 
+          - "python"
+          - "/mnist.py"
+        args: 
+          - "--job_name=worker"
+          - "--task_index=0"
+          - "--worker_hosts=mnist-worker-0:2222"
+          - "--ps_hosts=mnist-ps-0:2222"
+        ports:
+          - containerPort: 2222    
+        resources:
+          requests: #Optional
+            alpha.kubernetes.io/nvidia-gpu: 1
+          limits:
+            alpha.kubernetes.io/nvidia-gpu: 1
+        volumeMounts:
+        - name: nvidia-driver-375-66
+          mountPath: /usr/local/nvidia
+          readOnly: true
+        - name: libcuda-so
+          mountPath: /usr/lib/x86_64-linux-gnu/libcuda.so
+        - name: libcuda-so-1
+          mountPath: /usr/lib/x86_64-linux-gnu/libcuda.so.1
+        - name: libcuda-so-375-66
+          mountPath: /usr/lib/x86_64-linux-gnu/libcuda.so.375.66
+      volumes:
+      - name: nvidia-driver-375-66
+        hostPath:
+          path: /var/lib/nvidia-docker/volumes/nvidia_driver/375.66
+      - name: libcuda-so
+        hostPath:
+          path: /usr/lib/x86_64-linux-gnu/libcuda.so
+      - name: libcuda-so-1
+        hostPath:
+          path: /usr/lib/x86_64-linux-gnu/libcuda.so.1
+      - name: libcuda-so-375-66
+        hostPath:
+          path: /usr/lib/x86_64-linux-gnu/libcuda.so.375.66
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: mnist-worker-0
+spec:
+  selector:
+    name: mnist
+    job: worker
+    task: "0"
+  ports:
+  - port: 2222
+---
+kind: ReplicaSet
+apiVersion: extensions/v1beta1
+metadata:
+  name: mnist-ps-0
+spec:
+  replicas: 1
+  template:
+    metadata:
+      name: ps-0
+      labels:
+        name: mnist
+        job: ps
+        task: "0"
+    spec:
+      containers:
+      - name: ps-container
+        image: krallistic/mnist-between-ps:latest
+        imagePullPolicy: Always
+        command: 
+          - "python"
+          - "/mnist.py"
+        args: 
+          - "--job_name=ps"
+          - "--task_index=0"
+          - "--worker_hosts=mnist-worker-0:2222"
+          - "--ps_hosts=mnist-ps-0:2222"
+        ports:
+          - containerPort: 2222    
+        volumeMounts:
+        - name: nvidia-driver-375-66
+          mountPath: /usr/local/nvidia
+          readOnly: true
+        - name: libcuda-so
+          mountPath: /usr/lib/x86_64-linux-gnu/libcuda.so
+        - name: libcuda-so-1
+          mountPath: /usr/lib/x86_64-linux-gnu/libcuda.so.1
+        - name: libcuda-so-375-66
+          mountPath: /usr/lib/x86_64-linux-gnu/libcuda.so.375.66
+      volumes:
+      - name: nvidia-driver-375-66
+        hostPath:
+          path: /var/lib/nvidia-docker/volumes/nvidia_driver/375.66
+      - name: libcuda-so
+        hostPath:
+          path: /usr/lib/x86_64-linux-gnu/libcuda.so
+      - name: libcuda-so-1
+        hostPath:
+          path: /usr/lib/x86_64-linux-gnu/libcuda.so.1
+      - name: libcuda-so-375-66
+        hostPath:
+          path: /usr/lib/x86_64-linux-gnu/libcuda.so.375.66
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: mnist-ps-0
+spec:
+  selector:
+    name: mnist
+    job: ps
+    task: "0"
+  ports:
+  - port: 2222
