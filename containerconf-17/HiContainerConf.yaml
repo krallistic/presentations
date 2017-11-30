@@ -1,0 +1,9 @@
+apiVersion: "meetup.example.com/v1"
+kind: "helloworld"
+metadata:
+  name: hi-containerconf
+  labels:
+    app: demo
+spec:
+  hello: "hi"
+  world: "containerconf"
