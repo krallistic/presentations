@@ -14,9 +14,9 @@ from tensorflow.examples.tutorials.mnist import input_data
 
 
 # config
-batch_size = 50
-learning_rate = 0.01
-training_epochs = 10
+batch_size = 20
+learning_rate = 0.001
+training_epochs = 20
 
 def weight_variable(shape):
     initial = tf.truncated_normal(shape, stddev=0.1)
@@ -60,16 +60,16 @@ def run(server, cluster_spec):  # pylint: disable=too-many-statements, too-many-
   Raises:
     RuntimeError: If the expected log entries aren't found.
   """
-
+  print(server)
+  print(server.server_def)
+  print(server.server_def.task_index)
   mnist = input_data.read_data_sets('MNIST_data', one_hot=True)
 
   # construct the graph and create a saver object
   with tf.Graph().as_default(): 
     # The initial value should be such that type is correctly inferred as
     # float.
-    width = 10
-    height = 10
-    results = []
+
     with tf.device(tf.train.replica_device_setter(cluster=cluster_spec)):
 
         x = tf.placeholder(tf.float32, shape=[None, 784], name="x-input") 
@@ -116,7 +116,7 @@ def run(server, cluster_spec):  # pylint: disable=too-many-statements, too-many-
         train_op = tf.contrib.layers.optimize_loss(
             loss=cross_entropy,
             global_step=tf.contrib.framework.get_global_step(),
-            learning_rate=0.01,
+            learning_rate=learning_rate,
             # optimizer=tf.train.AdamOptimizer
             optimizer="Adam")
         correct_prediction = tf.equal(tf.argmax(y_conv,1), tf.argmax(y_,1))
@@ -126,7 +126,12 @@ def run(server, cluster_spec):  # pylint: disable=too-many-statements, too-many-
     hooks=[tf.train.StopAtStepHook(last_step=100)]
     init_op = tf.global_variables_initializer()
 
-
+    # Create a summary to monitor cost tensor
+    tf.summary.scalar("cross_entropy", cross_entropy)
+    # Create a summary to monitor accuracy tensor
+    tf.summary.scalar("accuracy", accuracy)
+    # Merge all summaries into a single op
+    merged_summary_op = tf.summary.merge_all()
     init_op = tf.global_variables_initializer()
 
     if server:
@@ -141,6 +146,10 @@ def run(server, cluster_spec):  # pylint: disable=too-many-statements, too-many-
         sess.run(init_op)
         batch_x, batch_y = mnist.train.next_batch(batch_size)
         batch_count = int(mnist.train.num_examples/batch_size)
+        import time
+        timestamp = str(time.time())
+        summary_writer = tf.summary.FileWriter("gs://krallistic-bigdata-vilnius/logdir/"+timestamp, graph=tf.get_default_graph())
+
         for epoch in range(20):
             for i in range(batch_count):
                 batch_x, batch_y = mnist.train.next_batch(batch_size)
@@ -149,7 +158,11 @@ def run(server, cluster_spec):  # pylint: disable=too-many-statements, too-many-
                     print("Batch: ", i, " from: " , batch_count)
                 if epoch % 2 == 0: 
                     print("Epoch: ", epoch )
-                    print("Test-Accuracy: %2.2f" % sess.run(accuracy, feed_dict={x: mnist.test.images, y_: mnist.test.labels}))
+
+                    c, summary = sess.run([accuracy, merged_summary_op], feed_dict={x: mnist.test.images, y_: mnist.test.labels})
+                    if server.server_def.task_index == 0:
+                        summary_writer.add_summary(summary, epoch * batch_size + i)
+                    print("Test-Accuracy: %2.2f" %  c)
         print("Done")
     print("Done")
 

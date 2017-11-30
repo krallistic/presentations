@@ -1,7 +1,7 @@
 apiVersion: "tensorflow.org/v1alpha1"
 kind: "TfJob"
 metadata:
-  name: "example-job"
+  name: "bigdata-vilnius"
   labels: 
     name: bigdata-vilnius
 spec:
@@ -14,7 +14,7 @@ spec:
             - image: krallistic/tf-dist-example:latest
               name: tensorflow
           restartPolicy: OnFailure
-    - replicas: 1
+    - replicas: 2
       tfReplicaType: WORKER
       template:
         spec:
@@ -24,3 +24,5 @@ spec:
           restartPolicy: OnFailure
     - replicas: 1
       tfReplicaType: PS
+  tensorboard:
+    logDir: gs://krallistic-bigdata-vilnius/logdir/
